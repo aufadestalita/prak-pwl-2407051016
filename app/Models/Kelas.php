@@ -9,9 +9,14 @@ class Kelas extends Model
 {
     use HasFactory;
 
-    // Menentukan nama tabel yang digunakan oleh model ini
     protected $table = 'kelas';
 
-    // Menentukan kolom mana saja yang boleh diisi (mass assignment)
-    protected $fillable = ['nama_kelas'];
+    protected $fillable = [
+        'nama_kelas',
+    ];
+
+    public function getKelas()
+    {
+        return $this->all();
+    }
 }

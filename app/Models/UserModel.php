@@ -9,9 +9,15 @@ class UserModel extends Model
 {
     use HasFactory;
 
-    // Menentukan nama tabel (sesuaikan dengan migration: 'user')
     protected $table = 'user';
 
-    // Kolom yang boleh diisi
     protected $fillable = ['nama', 'npm', 'kelas_id'];
+
+   
+    public function getUser()
+    {
+        return $this->join('kelas', 'kelas.id', '=', 'user.kelas_id')
+                    ->select('user.*', 'kelas.nama_kelas as nama_kelas')
+                    ->get();
+    }
 }

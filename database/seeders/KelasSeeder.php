@@ -3,13 +3,13 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Kelas; // PENTING: Import model Kelas di sini
+use App\Models\Kelas; 
 
 class KelasSeeder extends Seeder
 {
     public function run(): void
     {
-        // Data yang akan dimasukkan
+        
         $data = [
             ['nama_kelas' => 'A'],
             ['nama_kelas' => 'B'],
@@ -17,7 +17,7 @@ class KelasSeeder extends Seeder
             ['nama_kelas' => 'D'],
         ];
 
-        // Masukkan data ke tabel kelas menggunakan Model
+        
         foreach ($data as $item) {
             Kelas::create($item);
         }
