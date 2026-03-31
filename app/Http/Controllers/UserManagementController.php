@@ -17,47 +17,73 @@ class UserManagementController extends Controller
         $this->kelasModel = new Kelas();
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        
-        $users = $this->userModel->getUser();
+        $query = UserModel::with('kelas');
 
-       
-        return view('user-management', compact('users'));
+        if ($request->has('search') && $request->search != '') {
+            $query->where(function($q) use ($request) {
+                $q->where('name', 'ilike', '%' . $request->search . '%')
+                  ->orWhere('npm', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        if ($request->has('filter_kelas') && $request->filter_kelas != '') {
+            $query->where('kelas_id', $request->filter_kelas);
+        }
+
+        $users = $query->orderBy('name', 'asc')->paginate(5)->withQueryString();
+        $kelas = Kelas::orderBy('nama_kelas', 'asc')->get();
+
+        return view('user-management', compact('users', 'kelas'));
     }
 
     public function create()
     {
-        $kelas = $this->kelasModel->getKelas();
-        
-        $data = [
-            'judul' => 'Tambah User',
-            'kelas' => $kelas
-        ];
-
-        
-        return view('user-management-create', $data);
+        $kelas = Kelas::orderBy('nama_kelas', 'asc')->get();
+        return view('create-user', compact('kelas'));
     }
-
+    
     public function store(Request $request)
     {
         $request->validate([
-            'nama'     => 'required',
-            'npm'      => 'required',
-            'kelas_id' => 'required',
+            'name' => 'required|string|max:255',
+            'npm' => 'required|string|max:255',
+            'kelas_id' => 'required|exists:kelas,id'
         ]);
 
         $this->userModel->create([
-            'nama'     => $request->input('nama'),
-            'npm'      => $request->input('npm'),
+            'name' => $request->input('name'),
+            'npm' => $request->input('npm'),
             'kelas_id' => $request->input('kelas_id')
         ]);
 
-        return redirect()->route('user-management.index');
+        return redirect()->route('user-management.index')->with('success', 'Mahasiswa baru berhasil ditambahkan! 🌿');
     }
 
-    public function viewData($nama = " ", $npm = " ", $jurusan = " ", $prodi = " ")
+    public function update(Request $request, $id)
     {
-        return view('detail-user', compact('nama', 'npm', 'jurusan', 'prodi'));
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'npm' => 'required|string|max:255',
+            'kelas_id' => 'required|exists:kelas,id'
+        ]);
+
+        $user = UserModel::findOrFail($id);
+        $user->update([
+            'name' => $request->input('name'),
+            'npm' => $request->input('npm'),
+            'kelas_id' => $request->input('kelas_id')
+        ]);
+
+        return redirect()->route('user-management.index')->with('success', 'Data mahasiswa berhasil diperbarui! ✨');
+    }
+
+    public function destroy($id)
+    {
+        $user = UserModel::findOrFail($id);
+        $user->delete();
+
+        return redirect()->route('user-management.index')->with('success', 'Data mahasiswa telah dihapus! 🗑️');
     }
 }
