@@ -15,7 +15,7 @@ class UserSeeder extends Seeder
     {
         $users = [
             [
-                'nama' => 'Fikri',
+                'name' => 'Fikri',
                 'npm' => '2317051061',
                 'kelas_id' => Kelas::where('nama_kelas', 'A')->first()->id
             ]
