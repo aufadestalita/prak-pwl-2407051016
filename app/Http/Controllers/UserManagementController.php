@@ -2,28 +2,115 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Kelas;
+use App\Models\UserModel;
 use Illuminate\Http\Request;
+use Exception;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
-class UserManagementController extends Controller 
+class UserManagementController extends Controller
 {
-    // Fungsi untuk menampilkan tabel semua user (Halaman 14 & 17)
-    public function index()
-    {
-        $users = [
-            ['nama' => 'Ahmad Fikri Hanif', 'npm' => '2317051061', 'jurusan' => 'Ilmu Komputer', 'prodi' => 'S1 Ilmu Komputer'],
-            ['nama' => 'Ilham Kurniawan', 'npm' => '2317051071', 'jurusan' => 'Ilmu Komputer', 'prodi' => 'S1 Ilmu Komputer'],
-            ['nama' => 'David Mel Gibson Sianturi', 'npm' => '2217051120', 'jurusan' => 'Ilmu Komputer', 'prodi' => 'S1 Ilmu Komputer'],
-            ['nama' => 'Muhammad Rofiq', 'npm' => '2217051098', 'jurusan' => 'Ilmu Komputer', 'prodi' => 'S1 Ilmu Komputer'],
-        ];
+    public $userModel;
+    public $kelasModel;
 
-        // Mengirim data array ke view 'user-management' [cite: 158]
-        return view('user-management', compact('users'));
+    public function __construct()
+    {
+        $this->userModel = new UserModel();
+        $this->kelasModel = new Kelas();
     }
 
-    // Fungsi tambahan untuk Postest: Mengirim Data Melalui Parameter Route (Halaman 16)
-    public function viewData($nama = " ", $npm = " ", $jurusan = " ", $prodi = " ")
+    public function index(Request $request)
     {
-        // Memanggil view 'detail-user' dan mengirimkan parameter individu 
-        return view('detail-user', compact('nama', 'npm', 'jurusan', 'prodi'));
+        $query = UserModel::with('kelas');
+
+        if ($request->has('search') && $request->search != '') {
+            $query->where(function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                  ->orWhere('npm', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        if ($request->has('filter_kelas') && $request->filter_kelas != '') {
+            $query->where('kelas_id', $request->filter_kelas);
+        }
+
+        $users = $query->orderBy('name', 'asc')->paginate(5)->withQueryString();
+        $kelas = Kelas::orderBy('nama_kelas', 'asc')->get();
+
+        return view('user-management', compact('users', 'kelas'));
+    }
+
+    public function create()
+    {
+        $kelas = Kelas::orderBy('nama_kelas', 'asc')->get();
+        return view('create-user', compact('kelas'));
+    }
+    
+    public function store(Request $request)
+    {
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'npm' => 'required|string|max:255',
+                'kelas_id' => 'required|exists:kelas,id'
+            ]);
+
+            $this->userModel->create([
+                'name' => $request->input('name'),
+                'npm' => $request->input('npm'),
+                'kelas_id' => $request->input('kelas_id')
+            ]);
+
+            Log::info('User created successfully');
+            return redirect()->route('user-management.index')->with('success', 'User berhasil dibuat');
+        } catch (Exception $e) {
+            Log::error('User creation failed: ' . $e->getMessage());
+            return redirect()->route('user-management.index')->with('error', 'User gagal dibuat');
+        }
+    }
+
+    public function update(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'npm' => 'required|string|max:255',
+                'kelas_id' => 'required|exists:kelas,id'
+            ]);
+
+            DB::transaction(function() use ($id, $request) {
+                $user = UserModel::findOrFail($id);
+                $user->update([
+                    'name' => $request->input('name'),
+                    'npm' => $request->input('npm'),
+                    'kelas_id' => $request->input('kelas_id')
+                ]);
+            });
+
+            Log::info('User updated successfully for ID: ' . $id);
+            return redirect()->route('user-management.index')->with('success', 'User berhasil diupdate');
+
+        } catch (Exception $e) {
+            Log::error('User update failed: ' . $e->getMessage());
+            return redirect()->route('user-management.index')->with('error', 'User gagal diupdate');
+        }
+    }
+
+    public function destroy($id)
+    {
+        try {
+            DB::transaction(function() use ($id) {
+                $user = UserModel::findOrFail($id);
+                $user->delete();
+            });
+
+            Log::info('User deleted successfully: ' . $id);
+            return redirect()->route('user-management.index')->with('success', 'User berhasil dihapus');
+
+        } catch (Exception $e) {
+            Log::error('User deletion failed: ' . $e->getMessage());
+            return redirect()->route('user-management.index')->with('error', 'Gagal menghapus user');
+        }
     }
 }
