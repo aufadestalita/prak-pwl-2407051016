@@ -1,21 +1,30 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-// 1. Tambahkan baris ini untuk memanggil Controller yang sudah kamu buat
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserManagementController;
-
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-*/
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-// 2. Tambahkan route untuk halaman utama User Management (Modul Hal. 14)
-Route::get('/user-management', [UserManagementController::class, 'index']);
+Route::get('/dashboard', function () {
+    return view('dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');
 
-// 3. Tambahkan route untuk halaman Detail User dengan parameter (Modul Hal. 18)
-Route::get('/detail-user/{nama}/{npm}/{jurusan}/{prodi}', [UserManagementController::class, 'viewData']);
+Route::middleware(['auth', 'role:dosen'])->group(function () {
+    Route::get('/user-management', [UserManagementController::class, 'index'])->name('user-management.index');
+    Route::get('/user-management/create', [UserManagementController::class, 'create'])->name('user-management.create');
+    Route::post('/user-management', [UserManagementController::class, 'store'])->name('user-management.store');
+    Route::get('/user-management/{id}/edit', [UserManagementController::class, 'edit'])->name('user-management.edit');
+    Route::put('/user-management/{id}', [UserManagementController::class, 'update'])->name('user-management.update');
+    Route::delete('/user-management/{id}', [UserManagementController::class, 'destroy'])->name('user-management.destroy');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+require __DIR__.'/auth.php';
